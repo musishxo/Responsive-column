@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithm Flashcards - Container Query Demo</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --sidebar-width: 240px;
+            --header-height: 60px;
+            --bg-color: #0f0f0f;
+            --surface-color: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-color: #3ea6ff;
+            --card-border: #333;
+            --modal-overlay: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Light Theme Variables */
+        [data-theme="light"] {
+            --bg-color: #f4f4f9;
+            --surface-color: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --accent-color: #2563eb;
+            --card-border: #e0e0e0;
+            --modal-overlay: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* --- HEADER --- */
+        header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid var(--card-border);
+            z-index: 100;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .menu-btn:hover {
+            background-color: rgba(125, 125, 125, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo i {
+            color: var(--accent-color);
+            margin-right: 8px;
+        }
+
+        /* --- LAYOUT CONTAINER --- */
+        .app-layout {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - var(--header-height));
+            position: relative;
+        }
+
+        /* --- SIDEBAR --- */
+        aside {
+            width: 0;
+            background-color: var(--bg-color);
+            overflow-x: hidden;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid transparent;
+            flex-shrink: 0;
+        }
+
+        aside.open {
+            width: var(--sidebar-width);
+            border-right: 1px solid var(--card-border);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-link:hover {
+            background-color: rgba(125, 125, 125, 0.1);
+        }
+
+        .sidebar-link i {
+            margin-right: 20px;
+            width: 20px;
+        }
+
+        /* --- MAIN CONTENT (THE QUERY CONTAINER) --- */
+        main {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            container-type: inline-size; 
+            container-name: main-grid;
+        }
+
+        .section-title {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        /* --- FLASHCARD GRID --- */
+        .flashcard-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1fr;
+        }
+
+        /* --- CONTAINER QUERIES --- */
+        @container main-grid (min-width: 550px) {
+            .flashcard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @container main-grid (min-width: 850px) {
+            .flashcard-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @container main-grid (min-width: 1100px) {
+            .flashcard-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* --- CARD STYLING --- */
+        .card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, background-color 0.3s ease, border-color 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        .card-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .complexity-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background-color: rgba(62, 166, 255, 0.15);
+            color: var(--accent-color);
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+            padding-right: 60px;
+        }
+
+        .card-category {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .card-body {
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .code-snippet {
+            background-color: #000;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+            color: #4ec9b0;
+            margin-top: auto;
+            opacity: 0.9;
+        }
+
+        /* --- MODAL --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-overlay);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background-color: var(--surface-color);
+            padding: 24px;
+            border-radius: 16px;
+            width: 320px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: scale(0.95);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .close-modal:hover {
+            background-color: rgba(125, 125, 125, 0.1);
+        }
+
+        .theme-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .theme-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--card-border);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .theme-btn:hover {
+            border-color: var(--accent-color);
+        }
+
+        .theme-btn.active {
+            background-color: rgba(62, 166, 255, 0.1);
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="menu-btn" id="menuToggle" aria-label="Toggle Menu">
+            <i data-lucide="menu"></i>
+        </button>
+        <div class="logo">
+            <i data-lucide="brain-circuit"></i>
+            AlgoCards
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <aside id="sidebar" class="open">
+            <a href="#" class="sidebar-link"><i data-lucide="home"></i> Home</a>
+            <a href="#" class="sidebar-link"><i data-lucide="search"></i> Search Algos</a>
+            <a href="#" class="sidebar-link"><i data-lucide="database"></i> Data Structures</a>
+            <div style="flex: 1"></div>
+            <a href="#" class="sidebar-link" id="settingsLink"><i data-lucide="settings"></i> Settings</a>
+        </aside>
+
+        <main>
+            <h2 class="section-title">Common Algorithms & Structures</h2>
+            <div class="flashcard-grid">
+                
+                <!-- Card 1: Binary Search (Search) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Binary Search</h3>
+                        <span class="card-category">Search Algorithm</span>
+                        <div class="complexity-badge">O(log n)</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Efficiently finds a value in a **sorted list** by repeatedly cutting the search interval in half. It’s like searching for a word in a dictionary.</p>
+                        <div class="code-snippet">mid = low + (high - low) / 2</div>
+                    </div>
+                </article>
+
+                <!-- Card 2: Quick Sort (Sorting) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Quick Sort</h3>
+                        <span class="card-category">Sorting Algorithm</span>
+                        <div class="complexity-badge">O(n log n)</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">A highly efficient **divide-and-conquer** method that chooses a 'pivot' and moves smaller elements to the left, and larger to the right.</p>
+                        <div class="code-snippet">pivot = partition(arr, low, high)</div>
+                    </div>
+                </article>
+
+                <!-- Card 3: Hash Table (Structure) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Hash Table</h3>
+                        <span class="card-category">Data Structure</span>
+                        <div class="complexity-badge">O(1) Avg.</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Maps keys to values using a special function (hash function) allowing for incredibly fast insertions and lookups.</p>
+                        <div class="code-snippet">index = hash(key) % capacity</div>
+                    </div>
+                </article>
+
+                <!-- Card 4: Merge Sort (Sorting) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Merge Sort</h3>
+                        <span class="card-category">Sorting Algorithm</span>
+                        <div class="complexity-badge">O(n log n)</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Divides the list into two halves until single items remain, then merges the halves back together in sorted order.</p>
+                        <div class="code-snippet">merge(leftHalf, rightHalf)</div>
+                    </div>
+                </article>
+
+                <!-- Card 5: Dijkstra's Algorithm (Graph) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Dijkstra's Algo</h3>
+                        <span class="card-category">Graph Pathfinding</span>
+                        <div class="complexity-badge">O(E + V log V)</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Finds the **shortest path** from a starting node to all other nodes in a graph with positive edge weights. Used in navigation.</p>
+                        <div class="code-snippet">priorityQueue.add(node, distance)</div>
+                    </div>
+                </article>
+
+                <!-- Card 6: Breadth-First Search (BFS) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">BFS</h3>
+                        <span class="card-category">Graph Traversal</span>
+                        <div class="complexity-badge">O(V + E)</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Explores a graph level by level, checking all neighbors before moving deeper. Uses a **Queue** data structure.</p>
+                        <div class="code-snippet">queue.enqueue(startNode)</div>
+                    </div>
+                </article>
+
+                <!-- Card 7: Dynamic Programming (Technique) -->
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Dynamic Programming</h3>
+                        <span class="card-category">Optimization Technique</span>
+                        <div class="complexity-badge">Varies</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Method for solving complex problems by breaking them down into smaller subproblems and storing the solutions to avoid redundant work.</p>
+                        <div class="code-snippet">memo[i] = solve(i-1) + solve(i-2)</div>
+                    </div>
+                </article>
+
+                 <!-- Card 8: Depth-First Search (DFS) -->
+                 <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">DFS</h3>
+                        <span class="card-category">Graph Traversal</span>
+                        <div class="complexity-badge">O(V + E)</div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-desc">Explores a graph by going as deep as possible down one branch before backtracking. Uses a **Stack** data structure.</p>
+                        <div class="code-snippet">dfs(visited, node.child)</div>
+                    </div>
+                </article>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="close-modal" id="closeModal" aria-label="Close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">Theme Preference</p>
+            <div class="theme-options">
+                <button class="theme-btn active" id="btnDark">
+                    <i data-lucide="moon"></i>
+                    Dark Mode
+                </button>
+                <button class="theme-btn" id="btnLight">
+                    <i data-lucide="sun"></i>
+                    Light Mode
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Hamburger Button Logic
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // Settings Modal & Theme Logic
+        const settingsLink = document.getElementById('settingsLink');
+        const modal = document.getElementById('settingsModal');
+        const closeModal = document.getElementById('closeModal');
+        const btnDark = document.getElementById('btnDark');
+        const btnLight = document.getElementById('btnLight');
+
+        // Open Modal
+        settingsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            modal.classList.add('active');
+        });
+
+        // Close Modal
+        const hideModal = () => modal.classList.remove('active');
+        closeModal.addEventListener('click', hideModal);
+        
+        // Close on click outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideModal();
+        });
+
+        // Theme Switchers
+        btnLight.addEventListener('click', () => {
+            document.documentElement.setAttribute('data-theme', 'light');
+            btnLight.classList.add('active');
+            btnDark.classList.remove('active');
+        });
+
+        btnDark.addEventListener('click', () => {
+            document.documentElement.removeAttribute('data-theme');
+            btnDark.classList.add('active');
+            btnLight.classList.remove('active');
+        });
+
+    </script>
+</body>
+</html>

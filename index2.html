@@ -1,0 +1,161 @@
+<!--
+Responsive Two-Column Web Component
+File: two-column-component.html
+
+What this file contains:
+- A reusable custom element <two-column> that turns into a two-column layout
+  when the component's width exceeds a configurable threshold.
+- CSS-only fallback that uses a CSS media query and a JS-driven ResizeObserver
+  so the component reacts to the component's own size (not the viewport).
+- Simple demo content and usage notes.
+
+Usage:
+- Drop this file into a static server or open it in the browser.
+- Use <two-column min-width="640"> to set the threshold in pixels (defaults to 700).
+
+This file is intentionally compact and commented so you can copy/paste into your
+project or include it as a module.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Two-Column Web Component — Demo</title>
+  <style>
+    :root{font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;}
+    body{padding:24px;background:#f7f7fb;color:#111}
+    h1{font-size:1.25rem;margin:0 0 12px}
+    .demo-wrap{max-width:1000px;margin:0 auto}
+    .card{background:white;border-radius:12px;padding:16px;box-shadow:0 4px 18px rgba(12,16,30,0.06)}
+    .usage{font-size:0.9rem;color:#444;margin-top:12px}
+    .example-box{border:1px dashed #e2e6ef;padding:12px;border-radius:8px;margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="demo-wrap">
+    <div class="card">
+      <h1>Responsive Two-Column Web Component</h1>
+      <div class="usage">
+        <strong>How it works (brief):</strong>
+        <ul>
+          <li>The component uses a Shadow DOM template for encapsulation.</li>
+          <li>CSS Grid lays out two equal columns when the component is wide enough.</li>
+          <li>A <code>ResizeObserver</code> watches the component's width and toggles
+              the two-column state so the layout responds to the element's size (not just the viewport).</li>
+          <li>Set the threshold with <code>min-width</code> attribute (pixels).</li>
+        </ul>
+      </div>
+
+      <div class="example-box">
+        <!-- Demo usage: min-width attribute sets threshold in px -->
+        <two-column min-width="640">
+          <div slot="left">
+            <h2>Left column</h2>
+            <p>This is sample content for the left column. Resize the window or drag the inspector to see it change.</p>
+          </div>
+          <div slot="right">
+            <h2>Right column</h2>
+            <p>Right column content. Use slots to place your content. The component stacks on small widths.</p>
+          </div>
+        </two-column>
+      </div>
+
+      <p class="usage">Usage example in HTML:
+        <code>&lt;two-column min-width="640">&lt;div slot="left">…&lt;/div>&lt;div slot="right">…&lt;/div>&lt;/two-column&gt;</code>
+      </p>
+    </div>
+  </div>
+
+  <template id="two-column-template">
+    <style>
+      :host{display:block}
+      .wrap{transition:all 200ms ease;}
+
+      /* default: stacked single column */
+      .cols{display:block;gap:16px}
+      .col{padding:12px}
+
+      /* two-column modifier — applied by JS or by host attribute in fallback */
+      :host(.two) .cols{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+
+      /* small presentational touches */
+      .col h2{margin:0 0 8px;font-size:1rem}
+      .col p{margin:0;font-size:0.95rem;color:#333}
+
+      /* optional: let authors override spacing via CSS variables */
+      :host{--gap:16px}
+      :host(.two) .cols{gap:var(--gap)}
+    </style>
+    <div class="wrap card-like">
+      <div part="cols" class="cols">
+        <div part="left" class="col"><slot name="left"></slot></div>
+        <div part="right" class="col"><slot name="right"></slot></div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    (function(){
+      const tpl = document.getElementById('two-column-template');
+
+      class TwoColumn extends HTMLElement{
+        constructor(){
+          super();
+          this._threshold = 700; // default px
+          this._ro = null;
+          this.attachShadow({mode:'open'});
+          this.shadowRoot.appendChild(tpl.content.cloneNode(true));
+        }
+
+        static get observedAttributes(){ return ['min-width']; }
+
+        attributeChangedCallback(name, oldVal, newVal){
+          if(name === 'min-width'){
+            const n = parseInt(newVal,10);
+            if(!Number.isNaN(n)) this._threshold = n;
+            this._updateByWidth();
+          }
+        }
+
+        connectedCallback(){
+          // initialize threshold from attribute
+          if(this.hasAttribute('min-width')){
+            const n = parseInt(this.getAttribute('min-width'),10);
+            if(!Number.isNaN(n)) this._threshold = n;
+          }
+
+          // Use ResizeObserver to monitor the element's inline size
+          if('ResizeObserver' in window){
+            this._ro = new ResizeObserver(()=> this._updateByWidth());
+            this._ro.observe(this);
+          } else {
+            // Fallback: listen to window resize (less accurate but works)
+            window.addEventListener('resize', this._updateByWidthBound = this._updateByWidth.bind(this));
+            // Also run initial check
+            this._updateByWidth();
+          }
+        }
+
+        disconnectedCallback(){
+          if(this._ro) this._ro.disconnect();
+          if(this._updateByWidthBound) window.removeEventListener('resize', this._updateByWidthBound);
+        }
+
+        _updateByWidth(){
+          // Component's content-box width
+          const w = this.getBoundingClientRect().width;
+          if(w >= this._threshold){
+            this.classList.add('two');
+          } else {
+            this.classList.remove('two');
+          }
+        }
+      }
+
+      customElements.define('two-column', TwoColumn);
+    })();
+  </script>
+</body>
+</html>

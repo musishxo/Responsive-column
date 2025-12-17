@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Two-Column Component</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        
+        /* Demonstration Slider Styles */
+        .controls { margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px; }
+        .container { border: 2px dashed #ccc; padding: 10px; transition: width 0.3s; max-width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h3>Resize the container to test the component:</h3>
+        <input type="range" id="widthSlider" min="300" max="1200" value="900" style="width: 100%;">
+        <p>Current Container Width: <span id="widthVal">900px</span></p>
+    </div>
+
+    <div id="demoContainer" class="container" style="width: 900px;">
+        
+        <responsive-columns breakpoint="600" gap="20">
+            <div>
+                <h4>Column Content A</h4>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            </div>
+            <div>
+                <h4>Column Content B</h4>
+                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            </div>
+        </responsive-columns>
+
+    </div>
+
+    <script>
+        class ResponsiveColumns extends HTMLElement {
+            constructor() {
+                super();
+                this.attachShadow({ mode: 'open' });
+            }
+
+            connectedCallback() {
+                // Get attributes or set defaults
+                const breakpoint = this.getAttribute('breakpoint') || 600;
+                const gap = this.getAttribute('gap') || 20;
+
+                // Define Styles
+                const style = document.createElement('style');
+                style.textContent = `
+                    :host {
+                        display: block;
+                        width: 100%;
+                    }
+                    .content-wrapper {
+                        display: grid;
+                        gap: ${gap}px;
+                        grid-template-columns: 1fr; /* Default to 1 column */
+                        transition: all 0.3s ease;
+                    }
+                    .content-wrapper.two-columns {
+                        grid-template-columns: 1fr 1fr; /* Switch to 2 columns */
+                    }
+                `;
+
+                // Create Wrapper
+                const wrapper = document.createElement('div');
+                wrapper.className = 'content-wrapper';
+                
+                // Slot allows users to inject their own content
+                const slot = document.createElement('slot');
+                wrapper.appendChild(slot);
+
+                this.shadowRoot.append(style, wrapper);
+
+                // Initialize ResizeObserver (The "Algorithm") [cite: 6]
+                this.observer = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        const width = entry.contentRect.width;
+                        if (width > breakpoint) {
+                            wrapper.classList.add('two-columns');
+                        } else {
+                            wrapper.classList.remove('two-columns');
+                        }
+                    }
+                });
+
+                this.observer.observe(this);
+            }
+
+            disconnectedCallback() {
+                if (this.observer) this.observer.disconnect();
+            }
+        }
+
+        // Register the custom element
+        customElements.define('responsive-columns', ResponsiveColumns);
+
+        // Logic for the demo slider
+        const slider = document.getElementById('widthSlider');
+        const container = document.getElementById('demoContainer');
+        const valDisplay = document.getElementById('widthVal');
+
+        slider.addEventListener('input', (e) => {
+            const width = e.target.value + 'px';
+            container.style.width = width;
+            valDisplay.textContent = width;
+        });
+    </script>
+</body>
+</html>
